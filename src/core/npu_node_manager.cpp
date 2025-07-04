@@ -6,8 +6,17 @@
 #include <fcntl.h>
 #include <cstring>
 #include <cstdio>
+#include "task_manager.h"
+#include <etl/string.h>
+#include "json_utils.h"
 
 static NPUNodeList npu_nodes;
+static TaskManager* g_task_mgr = nullptr;
+
+// 设置全局 TaskManager 指针
+void npu_set_task_manager(TaskManager* task_mgr) {
+    g_task_mgr = task_mgr;
+}
 
 void npu_node_manager_init() {
     npu_nodes.clear();
@@ -59,9 +68,30 @@ void npu_poll_receive() {
         ssize_t nread = recv(n.socket_fd, buf, MAX_JSON_SIZE, MSG_DONTWAIT);
         if (nread > 0) {
             buf[nread] = 0;
-            std::string result(buf);
-            // 这里应将result转发到任务管理器，原样返回给客户端
-            // 例如: task_manager_push_response(n.socket_fd, result, true, "");
+            
+            // 解析 NPU 返回的 JSON 数据
+            nlohmann::json json_obj;
+            if (parse_json(std::string(buf), json_obj)) {
+                // 提取 request_id 和 token
+                std::string request_id_str, token_str;
+                if (get_json_string(json_obj, "request_id", request_id_str) && 
+                    get_json_string(json_obj, "token", token_str)) {
+                    
+                    // 转换为 etl::string<64> 并转发 token
+                    etl::string<64> request_id(request_id_str.c_str());
+                    npu_forward_token(request_id, token_str.c_str());
+                    
+                    // 可选：记录日志
+                    printf("NPU received token for request %s: %s\n", 
+                           request_id_str.c_str(), token_str.c_str());
+                }
+            }
         }
+    }
+}
+
+void npu_forward_token(const etl::string<64>& request_id, const char* token) {
+    if (g_task_mgr) {
+        g_task_mgr->addToken(request_id, token);
     }
 } 

@@ -1,5 +1,6 @@
 #include "task_manager.h"
 #include "inference_node_manager.h"
+#include <etl/string.h>
 
 TaskManager::TaskManager() : running(false), node_manager_(nullptr) {}
 TaskManager::~TaskManager() { stop(); }
@@ -62,5 +63,33 @@ void TaskManager::responseLoop() {
         } else {
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
+    }
+}
+
+// 添加token到链表
+void TaskManager::addToken(const etl::string<64>& request_id, const char* token) {
+    auto it = token_map_.find(request_id);
+    if (it == token_map_.end()) {
+        TokenList* list = new TokenList();
+        list->addToken(token);
+        token_map_.insert(std::make_pair(request_id, list));
+    } else {
+        it->second->addToken(token);
+    }
+}
+
+// 获取链表
+TokenList* TaskManager::getTokenList(const etl::string<64>& request_id) {
+    auto it = token_map_.find(request_id);
+    if (it != token_map_.end()) return it->second;
+    return nullptr;
+}
+
+// 清理链表
+void TaskManager::clearTokenList(const etl::string<64>& request_id) {
+    auto it = token_map_.find(request_id);
+    if (it != token_map_.end()) {
+        delete it->second;
+        token_map_.erase(it);
     }
 } 

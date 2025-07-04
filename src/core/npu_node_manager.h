@@ -2,6 +2,7 @@
 #include <etl/vector.h>
 #include <string>
 #include <netinet/in.h>
+#include <etl/string.h>
 
 #define MAX_NPU_NODES 8
 #define MAX_JSON_SIZE 2048
@@ -24,4 +25,8 @@ bool npu_send_to_node(int node_idx, const std::string& data);
 // 轮询接收NPU节点数据（流式）
 void npu_poll_receive();
 // 获取NPU节点列表
-NPUNodeList* npu_get_node_list(); 
+NPUNodeList* npu_get_node_list();
+// 设置全局 TaskManager 指针
+void npu_set_task_manager(TaskManager* task_mgr);
+// 转发NPU流式token到TaskManager
+void npu_forward_token(const etl::string<64>& request_id, const char* token); 
