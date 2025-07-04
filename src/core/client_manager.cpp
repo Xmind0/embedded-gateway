@@ -7,6 +7,8 @@
 #include <cstring>
 #include <cstdio>
 #include <algorithm>
+#include "json_utils.h"
+#include "../common/data_structures.h"
 
 static int listen_fd = -1;
 static ClientList clients;
@@ -89,9 +91,18 @@ void client_manager_run(TaskManager* task_mgr) {
                     continue;
                 }
                 buf[n] = 0;
-                std::string json_str(buf);
+                // 解析 JSON，插入 request_id
+                nlohmann::json json_obj;
+                if (parse_json(std::string(buf), json_obj)) {
+                    etl::string<64> req_id = generate_request_id();
+                    json_obj["request_id"] = std::string(req_id.c_str());
+                    std::string json_out = dump_json(json_obj);
+                    // 拷贝回 buf
+                    strncpy(buf, json_out.c_str(), MAX_JSON_SIZE);
+                    buf[MAX_JSON_SIZE] = 0;
+                }
                 if (task_mgr) {
-                    task_mgr->pushRequest(c.socket_fd, json_str);
+                    task_mgr->pushRequest(c.socket_fd, buf);
                 }
             }
         }

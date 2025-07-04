@@ -5,6 +5,9 @@
 #include <chrono>
 #include <mutex>
 #include <cstdlib>
+#include <random>
+#include <sstream>
+#include <etl/string.h>
 
 // 简单的队列实现
 template<typename T, int MAX_SIZE>
@@ -343,4 +346,16 @@ public:
 
 private:
     SimpleQueue<RequestMessage*, MAX_MSGS> queue;
-}; 
+};
+
+// 生成唯一 request_id（返回 etl::string<64>）
+inline etl::string<64> generate_request_id() {
+    static std::mt19937_64 rng(std::random_device{}());
+    static std::uniform_int_distribution<uint64_t> dist;
+    long long ts = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::system_clock::now().time_since_epoch()).count();
+    uint64_t rnd = dist(rng);
+    char buf[64];
+    snprintf(buf, 64, "%lld-%llu", ts, (unsigned long long)rnd);
+    return etl::string<64>(buf);
+} 
