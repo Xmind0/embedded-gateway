@@ -35,7 +35,7 @@ struct TokenNode {
 // 自定义链表类
 class TokenList {
 public:
-    TokenList() : head(nullptr), tail(nullptr), size(0), output_ptr(nullptr) {}
+    TokenList() : head(nullptr), tail(nullptr), size(0), output_ptr(nullptr), is_finished(false) {}
     ~TokenList() {
         clear();
     }
@@ -51,6 +51,26 @@ public:
             tail = node;
         }
         size++;
+    }
+    
+    // 标记token流结束
+    void markFinished() {
+        is_finished = true;
+    }
+    
+    // 检查token流是否结束
+    bool isFinished() const {
+        return is_finished;
+    }
+    
+    // 检查是否还有更多token（包括未结束的流）
+    bool hasMoreTokens() const {
+        return output_ptr != nullptr || (!is_finished && size > 0);
+    }
+    
+    // 检查是否完全结束（已发送完所有token且流已结束）
+    bool isCompletelyFinished() const {
+        return is_finished && output_ptr == nullptr;
     }
     
     // 获取链表头
@@ -70,6 +90,7 @@ public:
         head = tail = nullptr;
         size = 0;
         output_ptr = nullptr;
+        is_finished = false;
     }
     
     // 输出相关函数
@@ -86,11 +107,6 @@ public:
         return token;
     }
     
-    // 检查是否还有更多token
-    bool hasMoreTokens() const {
-        return output_ptr != nullptr;
-    }
-    
     // 获取当前输出位置
     TokenNode* getCurrentOutputPos() const {
         return output_ptr;
@@ -101,6 +117,7 @@ private:
     TokenNode* tail;
     int size;
     TokenNode* output_ptr;  // 输出遍历指针
+    bool is_finished;       // 标记token流是否结束
 };
 
 class TaskManager {
@@ -123,6 +140,8 @@ public:
 
     // token流式接收接口
     void addToken(const etl::string<64>& request_id, const char* token);
+    // 标记token流结束
+    void markTokenStreamFinished(const etl::string<64>& request_id);
     // 获取链表
     TokenList* getTokenList(const etl::string<64>& request_id);
     // 清理链表

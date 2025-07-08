@@ -92,4 +92,12 @@ void TaskManager::clearTokenList(const etl::string<64>& request_id) {
         delete it->second;
         token_map_.erase(it);
     }
+}
+
+// 标记token流结束
+void TaskManager::markTokenStreamFinished(const etl::string<64>& request_id) {
+    auto it = token_map_.find(request_id);
+    if (it != token_map_.end()) {
+        it->second->markFinished();
+    }
 } 

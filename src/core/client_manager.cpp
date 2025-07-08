@@ -12,6 +12,7 @@
 
 static int listen_fd = -1;
 static ClientList clients;
+static ClientRequestList client_requests;  // 客户端请求映射列表
 
 void client_manager_init(int listen_port) {
     listen_fd = socket(AF_INET, SOCK_STREAM, 0);
@@ -88,6 +89,12 @@ void client_manager_run(TaskManager* task_mgr) {
                 if (n <= 0) {
                     close(c.socket_fd);
                     clients.erase(clients.begin() + i);
+                    // 清理对应的请求映射
+                    for (int j = (int)client_requests.size()-1; j >= 0; --j) {
+                        if (client_requests[j].client_socket == c.socket_fd) {
+                            client_requests.erase(client_requests.begin() + j);
+                        }
+                    }
                     continue;
                 }
                 buf[n] = 0;
@@ -100,11 +107,55 @@ void client_manager_run(TaskManager* task_mgr) {
                     // 拷贝回 buf
                     strncpy(buf, json_out.c_str(), MAX_JSON_SIZE);
                     buf[MAX_JSON_SIZE] = 0;
+                    // 添加客户端请求映射
+                    client_requests.push_back({c.socket_fd, req_id, true});
                 }
                 if (task_mgr) {
                     task_mgr->pushRequest(c.socket_fd, buf);
                 }
             }
+        }
+        // 处理待发送的 token - 基于 requestID 的策略
+        if (task_mgr) {
+            client_manager_process_pending_tokens(task_mgr);
+        }
+    }
+}
+
+// 处理所有待发送的 token - 基于 requestID 的批量策略
+void client_manager_process_pending_tokens(TaskManager* task_mgr) {
+    // 遍历所有活跃的客户端请求
+    for (auto& req : client_requests) {
+        if (!req.is_active) continue;
+        
+        TokenList* list = task_mgr->getTokenList(req.request_id);
+        if (!list) {
+            // 如果找不到对应的 TokenList，标记为非活跃
+            req.is_active = false;
+            continue;
+        }
+        
+        // 检查是否有新的 token 需要发送
+        if (list->hasMoreTokens()) {
+            // 发送一个 token 给对应的客户端
+            const char* token = list->getNextToken();
+            if (token) {
+                send(req.client_socket, token, strlen(token), 0);
+            }
+        }
+        
+        // 检查是否完全结束（已发送完所有token且流已结束）
+        if (list->isCompletelyFinished()) {
+            req.is_active = false;
+            // 清理对应的 TokenList
+            task_mgr->clearTokenList(req.request_id);
+        }
+    }
+    
+    // 清理已完成的请求映射
+    for (int i = (int)client_requests.size()-1; i >= 0; --i) {
+        if (!client_requests[i].is_active) {
+            client_requests.erase(client_requests.begin() + i);
         }
     }
 }

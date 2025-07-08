@@ -11,7 +11,16 @@ struct ClientInfo {
     sockaddr_in addr;
     bool connected;
 };
+
+// 客户端请求映射结构
+struct ClientRequestMapping {
+    int client_socket;
+    etl::string<64> request_id;
+    bool is_active;
+};
+
 using ClientList = etl::vector<ClientInfo, MAX_CLIENTS>;
+using ClientRequestList = etl::vector<ClientRequestMapping, MAX_CLIENTS>;
 
 class TaskManager; // 前向声明
 
@@ -29,3 +38,5 @@ ClientList* client_manager_get_list();
 void client_manager_close_all();
 // 事件循环，接收数据并推送到任务管理器
 void client_manager_run(TaskManager* task_mgr);
+// 处理所有待发送的 token - 基于 requestID 的批量策略
+void client_manager_process_pending_tokens(TaskManager* task_mgr);
