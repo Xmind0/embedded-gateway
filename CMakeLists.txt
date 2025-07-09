@@ -37,6 +37,10 @@ set(CORE_SOURCES
     src/core/backend_connector.cpp
     src/core/inference_connector.h
     src/core/inference_connector.cpp
+    src/core/json_utils.h
+    src/core/json_utils.cpp
+    src/core/message_handler.h
+    src/core/message_handler.cpp
 )
 
 # 网关服务器可执行文件
@@ -56,6 +60,20 @@ add_executable(mock_inference_server
 )
 
 target_link_libraries(mock_inference_server Threads::Threads)
+
+# 示例程序
+add_executable(client_example
+    examples/client_example.cpp
+    ${CORE_SOURCES}
+)
+
+add_executable(npu_node_example
+    examples/npu_node_example.cpp
+    ${CORE_SOURCES}
+)
+
+target_link_libraries(client_example Threads::Threads)
+target_link_libraries(npu_node_example Threads::Threads)
 
 # 测试程序
 set(TEST_SOURCES
@@ -78,7 +96,7 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/tests/test_client_manager.cpp")
 endif()
 
 # 安装规则
-install(TARGETS gateway_server mock_inference_server
+install(TARGETS gateway_server mock_inference_server client_example npu_node_example
     RUNTIME DESTINATION bin
 )
 
@@ -88,6 +106,14 @@ set_target_properties(gateway_server PROPERTIES
 )
 
 set_target_properties(mock_inference_server PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+)
+
+set_target_properties(client_example PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+)
+
+set_target_properties(npu_node_example PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
 )
 
