@@ -33,6 +33,11 @@ set(CORE_SOURCES
     src/core/gateway_server.cpp
     src/core/task_manager.h
     src/core/task_manager.cpp
+    src/core/task_cache.h
+    src/core/task_cache.cpp
+    src/core/task_queue.h
+    src/core/task_queue.cpp
+    src/core/task_context.h
     src/core/backend_connector.h
     src/core/backend_connector.cpp
     src/core/inference_connector.h

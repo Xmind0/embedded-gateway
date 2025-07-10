@@ -1,6 +1,6 @@
 #include "task_manager.h"
 #include "inference_node_manager.h"
-#include <etl/string.h>
+#include <chrono>
 
 TaskManager::TaskManager() : running(false), node_manager_(nullptr) {}
 TaskManager::~TaskManager() { stop(); }
@@ -67,7 +67,7 @@ void TaskManager::responseLoop() {
 }
 
 // 添加token到链表
-void TaskManager::addToken(const etl::string<64>& request_id, const char* token) {
+void TaskManager::addToken(const std::string& request_id, const char* token) {
     auto it = token_map_.find(request_id);
     if (it == token_map_.end()) {
         TokenList* list = new TokenList();
@@ -79,14 +79,14 @@ void TaskManager::addToken(const etl::string<64>& request_id, const char* token)
 }
 
 // 获取链表
-TokenList* TaskManager::getTokenList(const etl::string<64>& request_id) {
+TokenList* TaskManager::getTokenList(const std::string& request_id) {
     auto it = token_map_.find(request_id);
     if (it != token_map_.end()) return it->second;
     return nullptr;
 }
 
 // 清理链表
-void TaskManager::clearTokenList(const etl::string<64>& request_id) {
+void TaskManager::clearTokenList(const std::string& request_id) {
     auto it = token_map_.find(request_id);
     if (it != token_map_.end()) {
         delete it->second;
@@ -95,9 +95,76 @@ void TaskManager::clearTokenList(const etl::string<64>& request_id) {
 }
 
 // 标记token流结束
-void TaskManager::markTokenStreamFinished(const etl::string<64>& request_id) {
+void TaskManager::markTokenStreamFinished(const std::string& request_id) {
     auto it = token_map_.find(request_id);
     if (it != token_map_.end()) {
         it->second->markFinished();
     }
+}
+
+// 新的任务管理接口实现
+TaskContext* TaskManager::createTask(const std::string& request_id, int client_socket, 
+                                    const std::string& request_data, int priority) {
+    TaskContext* task = task_cache_.createTask(request_id, client_socket, request_data, priority);
+    if (task) {
+        task_queue_.addToPendingQueue(task);
+    }
+    return task;
+}
+
+TaskContext* TaskManager::getNextPendingTask() {
+    TaskContext* task = task_queue_.getNextPendingTask();
+    if (task) {
+        task->status = TaskStatus::PROCESSING;
+        task->assign_time = getCurrentTimestamp();
+        task_queue_.addToProcessingQueue(task);
+    }
+    return task;
+}
+
+TaskContext* TaskManager::getTask(const std::string& request_id) {
+    return task_cache_.getTask(request_id);
+}
+
+void TaskManager::completeTask(const std::string& request_id, const std::string& result) {
+    TaskContext* task = task_cache_.getTask(request_id);
+    if (task) {
+        task->response_data = result;
+        task->status = TaskStatus::COMPLETED;
+        task->complete_time = getCurrentTimestamp();
+        
+        task_queue_.removeFromProcessingQueue(task);
+        task_cache_.completeTask(request_id);
+    }
+}
+
+void TaskManager::failTask(const std::string& request_id, const std::string& error) {
+    TaskContext* task = task_cache_.getTask(request_id);
+    if (task) {
+        task->error_msg = error;
+        task->status = TaskStatus::FAILED;
+        task->complete_time = getCurrentTimestamp();
+        
+        task_queue_.removeFromProcessingQueue(task);
+        task_cache_.completeTask(request_id);
+    }
+}
+
+// 统计信息
+size_t TaskManager::getPendingTaskCount() const {
+    return task_queue_.getPendingQueueSize();
+}
+
+size_t TaskManager::getProcessingTaskCount() const {
+    return task_queue_.getProcessingQueueSize();
+}
+
+size_t TaskManager::getTotalTaskCount() const {
+    return task_cache_.getSize();
+}
+
+// 辅助函数
+long long TaskManager::getCurrentTimestamp() {
+    return std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::system_clock::now().time_since_epoch()).count();
 } 

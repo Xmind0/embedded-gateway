@@ -348,6 +348,18 @@ private:
     SimpleQueue<RequestMessage*, MAX_MSGS> queue;
 };
 
+// 简单的任务结构体（用于兼容旧接口）
+struct Task {
+    int client_socket;
+    std::string request_data;
+    std::string response_data;
+    bool success;
+    std::string error_msg;
+    
+    Task(int socket, const std::string& req, const std::string& resp, bool succ, const std::string& err)
+        : client_socket(socket), request_data(req), response_data(resp), success(succ), error_msg(err) {}
+};
+
 // 生成唯一 request_id（返回 etl::string<64>）
 inline etl::string<64> generate_request_id() {
     static std::mt19937_64 rng(std::random_device{}());

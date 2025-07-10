@@ -1,13 +1,15 @@
 #pragma once
-#include <etl/queue.h>
+#include <queue>
 #include <atomic>
 #include <thread>
 #include <string>
 #include <unordered_map>
 #include <functional>
-#include "task.h"
-#include <etl/map.h>
-#include <etl/string.h>
+#include <map>
+#include <string>
+#include "task_cache.h"
+#include "task_queue.h"
+#include "data_structures.h"
 
 class InferenceNodeManager; // 前向声明
 
@@ -120,6 +122,7 @@ private:
     bool is_finished;       // 标记token流是否结束
 };
 
+// 主任务管理器 - 协调缓存池和队列
 class TaskManager {
 public:
     static constexpr size_t MAX_TASKS = 128;
@@ -139,13 +142,26 @@ public:
     bool popFinishedResponse(Task& task);
 
     // token流式接收接口
-    void addToken(const etl::string<64>& request_id, const char* token);
+    void addToken(const std::string& request_id, const char* token);
     // 标记token流结束
-    void markTokenStreamFinished(const etl::string<64>& request_id);
+    void markTokenStreamFinished(const std::string& request_id);
     // 获取链表
-    TokenList* getTokenList(const etl::string<64>& request_id);
+    TokenList* getTokenList(const std::string& request_id);
     // 清理链表
-    void clearTokenList(const etl::string<64>& request_id);
+    void clearTokenList(const std::string& request_id);
+
+    // 新的任务管理接口
+    TaskContext* createTask(const std::string& request_id, int client_socket, 
+                           const std::string& request_data, int priority = 0);
+    TaskContext* getNextPendingTask();
+    TaskContext* getTask(const std::string& request_id);
+    void completeTask(const std::string& request_id, const std::string& result);
+    void failTask(const std::string& request_id, const std::string& error);
+    
+    // 统计信息
+    size_t getPendingTaskCount() const;
+    size_t getProcessingTaskCount() const;
+    size_t getTotalTaskCount() const;
 
 private:
     void taskLoop();
@@ -161,5 +177,9 @@ private:
     InferenceNodeManager* node_manager_;
 
     // request_id -> token链表
-    etl::map<etl::string<64>, TokenList*, MAX_TASKS> token_map_;
+    std::map<std::string, TokenList*> token_map_;
+    
+    // 分离的缓存池和队列
+    TaskCache task_cache_;
+    TaskQueue task_queue_;
 }; 
