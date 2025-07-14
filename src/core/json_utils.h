@@ -34,3 +34,9 @@ nlohmann::json create_error(const std::string& id, const std::string& message);
 nlohmann::json create_client_error(const std::string& id, const std::string& message);
 nlohmann::json create_heartbeat();
 nlohmann::json create_status(const std::string& node_id, bool available, float load = 0.0f); 
+
+// 新增：消息类序列化/反序列化
+bool parse_request_message(const std::string& json_str, RequestMessage& out_msg);
+bool parse_response_message(const std::string& json_str, ResponseMessage& out_msg);
+std::string dump_request_message(const RequestMessage& msg);
+std::string dump_response_message(const ResponseMessage& msg); 

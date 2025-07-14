@@ -141,3 +141,26 @@ nlohmann::json create_status(const std::string& node_id, bool available, float l
     json_obj["load"] = load;
     return json_obj;
 } 
+
+// 新增：消息类序列化/反序列化
+bool parse_request_message(const std::string& json_str, RequestMessage& out_msg) {
+    nlohmann::json json_obj;
+    if (!parse_json(json_str, json_obj) || !is_request(json_obj)) return false;
+    out_msg.from_json(json_obj);
+    return true;
+}
+
+bool parse_response_message(const std::string& json_str, ResponseMessage& out_msg) {
+    nlohmann::json json_obj;
+    if (!parse_json(json_str, json_obj) || !is_response(json_obj)) return false;
+    out_msg.from_json(json_obj);
+    return true;
+}
+
+std::string dump_request_message(const RequestMessage& msg) {
+    return dump_json(msg.to_json());
+}
+
+std::string dump_response_message(const ResponseMessage& msg) {
+    return dump_json(msg.to_json());
+} 

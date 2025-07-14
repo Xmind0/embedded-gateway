@@ -15,7 +15,44 @@ enum class MessageType {
 };
 
 // 消息结构体
-struct Message {
+class Message {
+public:
+    Message();
+    virtual ~Message() = default;
+    MessageType getType() const;
+    void setType(MessageType t);
+    const std::string& getId() const;
+    void setId(const std::string& id);
+    const std::string& getModel() const;
+    void setModel(const std::string& model);
+    const std::string& getPrompt() const;
+    void setPrompt(const std::string& prompt);
+    int getMaxTokens() const;
+    void setMaxTokens(int max_tokens);
+    bool getStream() const;
+    void setStream(bool stream);
+    int getClientSocket() const;
+    void setClientSocket(int sock);
+    const std::string& getToken() const;
+    void setToken(const std::string& token);
+    const std::string& getResult() const;
+    void setResult(const std::string& result);
+    bool getFinished() const;
+    void setFinished(bool finished);
+    const std::string& getMessage() const;
+    void setMessage(const std::string& msg);
+    const std::string& getNodeId() const;
+    void setNodeId(const std::string& node_id);
+    bool getAvailable() const;
+    void setAvailable(bool available);
+    float getLoad() const;
+    void setLoad(float load);
+
+    // JSON序列化/反序列化
+    virtual void from_json(const nlohmann::json& json_obj);
+    virtual nlohmann::json to_json() const;
+
+protected:
     MessageType type;
     std::string id;
     std::string model;
@@ -30,9 +67,22 @@ struct Message {
     std::string node_id;
     bool available;
     float load;
-    
-    Message() : type(MessageType::UNKNOWN), max_tokens(1000), stream(true), 
-                client_socket(-1), finished(false), available(false), load(0.0f) {}
+};
+
+// RequestMessage
+class RequestMessage : public Message {
+public:
+    RequestMessage();
+    void from_json(const nlohmann::json& json_obj) override;
+    nlohmann::json to_json() const override;
+};
+
+// ResponseMessage
+class ResponseMessage : public Message {
+public:
+    ResponseMessage();
+    void from_json(const nlohmann::json& json_obj) override;
+    nlohmann::json to_json() const override;
 };
 
 class MessageHandler {

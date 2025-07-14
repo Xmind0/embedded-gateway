@@ -98,20 +98,14 @@ void client_manager_run(TaskManager* task_mgr) {
                     continue;
                 }
                 buf[n] = 0;
-                // 解析 JSON，插入 request_id
-                nlohmann::json json_obj;
-                if (parse_json(std::string(buf), json_obj)) {
-                    etl::string<64> req_id = generate_request_id();
-                    json_obj["request_id"] = std::string(req_id.c_str());
-                    std::string json_out = dump_json(json_obj);
-                    // 拷贝回 buf
-                    strncpy(buf, json_out.c_str(), MAX_JSON_SIZE);
-                    buf[MAX_JSON_SIZE] = 0;
-                    // 添加客户端请求映射
-                    client_requests.push_back({c.socket_fd, req_id, true});
-                }
-                if (task_mgr) {
-                    task_mgr->pushRequest(c.socket_fd, buf);
+                // 直接解析为RequestMessage
+                RequestMessage req_msg;
+                if (parse_request_message(std::string(buf), req_msg)) {
+                    // 可选：生成/补充request_id等逻辑
+                    // 推送到TaskManager
+                    if (task_mgr) {
+                        task_mgr->pushRequest(c.socket_fd, buf);
+                    }
                 }
             }
         }

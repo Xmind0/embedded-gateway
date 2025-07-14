@@ -1,5 +1,105 @@
 #include "message_handler.h"
 
+// Message类实现
+Message::Message()
+    : type(MessageType::UNKNOWN), max_tokens(1000), stream(true),
+      client_socket(-1), finished(false), available(false), load(0.0f) {}
+
+MessageType Message::getType() const { return type; }
+void Message::setType(MessageType t) { type = t; }
+const std::string& Message::getId() const { return id; }
+void Message::setId(const std::string& v) { id = v; }
+const std::string& Message::getModel() const { return model; }
+void Message::setModel(const std::string& v) { model = v; }
+const std::string& Message::getPrompt() const { return prompt; }
+void Message::setPrompt(const std::string& v) { prompt = v; }
+int Message::getMaxTokens() const { return max_tokens; }
+void Message::setMaxTokens(int v) { max_tokens = v; }
+bool Message::getStream() const { return stream; }
+void Message::setStream(bool v) { stream = v; }
+int Message::getClientSocket() const { return client_socket; }
+void Message::setClientSocket(int v) { client_socket = v; }
+const std::string& Message::getToken() const { return token; }
+void Message::setToken(const std::string& v) { token = v; }
+const std::string& Message::getResult() const { return result; }
+void Message::setResult(const std::string& v) { result = v; }
+bool Message::getFinished() const { return finished; }
+void Message::setFinished(bool v) { finished = v; }
+const std::string& Message::getMessage() const { return message; }
+void Message::setMessage(const std::string& v) { message = v; }
+const std::string& Message::getNodeId() const { return node_id; }
+void Message::setNodeId(const std::string& v) { node_id = v; }
+bool Message::getAvailable() const { return available; }
+void Message::setAvailable(bool v) { available = v; }
+float Message::getLoad() const { return load; }
+void Message::setLoad(float v) { load = v; }
+
+void Message::from_json(const nlohmann::json& json_obj) {
+    // 类型判断由外部决定
+    get_json_string(json_obj, "id", id);
+    get_json_string(json_obj, "model", model);
+    get_json_string(json_obj, "prompt", prompt);
+    get_json_int(json_obj, "max_tokens", max_tokens);
+    get_json_bool(json_obj, "stream", stream);
+    get_json_int(json_obj, "client_socket", client_socket);
+    get_json_string(json_obj, "token", token);
+    get_json_string(json_obj, "result", result);
+    get_json_bool(json_obj, "finished", finished);
+    get_json_string(json_obj, "message", message);
+    get_json_string(json_obj, "node_id", node_id);
+    get_json_bool(json_obj, "available", available);
+    if (json_obj.contains("load") && json_obj["load"].is_number()) {
+        load = json_obj["load"].get<float>();
+    }
+}
+
+nlohmann::json Message::to_json() const {
+    nlohmann::json json_obj;
+    // type 需由子类或外部补充
+    json_obj["id"] = id;
+    json_obj["model"] = model;
+    json_obj["prompt"] = prompt;
+    json_obj["max_tokens"] = max_tokens;
+    json_obj["stream"] = stream;
+    json_obj["client_socket"] = client_socket;
+    json_obj["token"] = token;
+    json_obj["result"] = result;
+    json_obj["finished"] = finished;
+    json_obj["message"] = message;
+    json_obj["node_id"] = node_id;
+    json_obj["available"] = available;
+    json_obj["load"] = load;
+    return json_obj;
+}
+
+// RequestMessage实现
+RequestMessage::RequestMessage() {
+    setType(MessageType::REQUEST);
+}
+void RequestMessage::from_json(const nlohmann::json& json_obj) {
+    Message::from_json(json_obj);
+    setType(MessageType::REQUEST);
+}
+nlohmann::json RequestMessage::to_json() const {
+    nlohmann::json json_obj = Message::to_json();
+    json_obj["type"] = "request";
+    return json_obj;
+}
+
+// ResponseMessage实现
+ResponseMessage::ResponseMessage() {
+    setType(MessageType::RESPONSE);
+}
+void ResponseMessage::from_json(const nlohmann::json& json_obj) {
+    Message::from_json(json_obj);
+    setType(MessageType::RESPONSE);
+}
+nlohmann::json ResponseMessage::to_json() const {
+    nlohmann::json json_obj = Message::to_json();
+    json_obj["type"] = "response";
+    return json_obj;
+}
+
 bool MessageHandler::parse_message(const std::string& json_str, Message& out_msg) {
     nlohmann::json json_obj;
     if (!parse_json(json_str, json_obj)) {

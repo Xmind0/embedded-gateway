@@ -68,22 +68,13 @@ void npu_poll_receive() {
         ssize_t nread = recv(n.socket_fd, buf, MAX_JSON_SIZE, MSG_DONTWAIT);
         if (nread > 0) {
             buf[nread] = 0;
-            
-            // 解析 NPU 返回的 JSON 数据
-            nlohmann::json json_obj;
-            if (parse_json(std::string(buf), json_obj)) {
-                // 提取 request_id 和 token
-                std::string request_id_str, token_str;
-                if (get_json_string(json_obj, "request_id", request_id_str) && 
-                    get_json_string(json_obj, "token", token_str)) {
-                    
-                    // 转换为 etl::string<64> 并转发 token
-                    etl::string<64> request_id(request_id_str.c_str());
-                    npu_forward_token(request_id, token_str.c_str());
-                    
-                    // 可选：记录日志
-                    printf("NPU received token for request %s: %s\n", 
-                           request_id_str.c_str(), token_str.c_str());
+            // 直接解析为ResponseMessage
+            ResponseMessage resp_msg;
+            if (parse_response_message(std::string(buf), resp_msg)) {
+                // 可选：处理request_id/token等逻辑
+                // 推送到TaskManager或转发
+                if (g_task_mgr) {
+                    g_task_mgr->pushResponse(n.socket_fd, buf, true);
                 }
             }
         }
