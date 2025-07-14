@@ -21,15 +21,15 @@ void TaskManager::stop() {
     if (response_thread.joinable()) response_thread.join();
 }
 
-void TaskManager::pushRequest(int client_socket, const std::string& data) {
+void TaskManager::pushRequest(int client_socket, const RequestMessage& request) {
     if (!input_queue.full()) {
-        input_queue.push(Task{client_socket, data, "", false, ""});
+        input_queue.push(Task{client_socket, request, ResponseMessage(), false, ""});
     }
 }
 
-void TaskManager::pushResponse(int client_socket, const std::string& data, bool success, const std::string& error_msg) {
+void TaskManager::pushResponse(int client_socket, const ResponseMessage& response, bool success, const std::string& error_msg) {
     if (!output_queue.full()) {
-        output_queue.push(Task{client_socket, "", data, true, error_msg});
+        output_queue.push(Task{client_socket, RequestMessage(), response, true, error_msg});
     }
 }
 
@@ -103,9 +103,8 @@ void TaskManager::markTokenStreamFinished(const std::string& request_id) {
 }
 
 // 新的任务管理接口实现
-TaskContext* TaskManager::createTask(const std::string& request_id, int client_socket, 
-                                    const std::string& request_data, int priority) {
-    TaskContext* task = task_cache_.createTask(request_id, client_socket, request_data, priority);
+TaskContext* TaskManager::createTask(const std::string& request_id, int client_socket, const RequestMessage& request, int priority) {
+    TaskContext* task = task_cache_.createTask(request_id, client_socket, request, priority);
     if (task) {
         task_queue_.addToPendingQueue(task);
     }

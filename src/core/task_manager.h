@@ -135,9 +135,9 @@ public:
     bool isRunning() const { return running.load(); }
 
     // 客户端推送请求
-    void pushRequest(int client_socket, const std::string& data);
+    void pushRequest(int client_socket, const RequestMessage& request);
     // 节点推送响应
-    void pushResponse(int client_socket, const std::string& data, bool success, const std::string& error_msg = "");
+    void pushResponse(int client_socket, const ResponseMessage& response, bool success, const std::string& error_msg = "");
     // 取出已完成响应
     bool popFinishedResponse(Task& task);
 
@@ -152,7 +152,7 @@ public:
 
     // 新的任务管理接口
     TaskContext* createTask(const std::string& request_id, int client_socket, 
-                           const std::string& request_data, int priority = 0);
+                           const RequestMessage& request, int priority = 0);
     TaskContext* getNextPendingTask();
     TaskContext* getTask(const std::string& request_id);
     void completeTask(const std::string& request_id, const std::string& result);

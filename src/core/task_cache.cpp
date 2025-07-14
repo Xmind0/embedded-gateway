@@ -2,7 +2,7 @@
 #include <chrono>
 
 TaskContext* TaskCache::createTask(const std::string& request_id, int client_socket, 
-                                   const std::string& request_data, int priority) {
+                                   const RequestMessage& request, int priority) {
     std::lock_guard<std::mutex> lock(cache_mutex_);
     
     if (task_cache_.size() >= MAX_TASKS) return nullptr;
@@ -12,7 +12,7 @@ TaskContext* TaskCache::createTask(const std::string& request_id, int client_soc
     // 初始化任务
     task->request_id = request_id;
     task->client_socket = client_socket;
-    task->request_data = request_data;
+    task->request = request;
     task->status = TaskStatus::PENDING;
     task->create_time = getCurrentTimestamp();
     task->priority = priority;

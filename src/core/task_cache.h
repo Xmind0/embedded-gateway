@@ -21,7 +21,7 @@ public:
     
     // 创建新任务
     TaskContext* createTask(const std::string& request_id, int client_socket, 
-                           const std::string& request_data, int priority = 0);
+                           const RequestMessage& request, int priority = 0);
     
     // 获取任务
     TaskContext* getTask(const std::string& request_id);

@@ -72,9 +72,8 @@ void npu_poll_receive() {
             ResponseMessage resp_msg;
             if (parse_response_message(std::string(buf), resp_msg)) {
                 // 可选：处理request_id/token等逻辑
-                // 推送到TaskManager或转发
                 if (g_task_mgr) {
-                    g_task_mgr->pushResponse(n.socket_fd, buf, true);
+                    g_task_mgr->pushResponse(n.socket_fd, resp_msg, true);
                 }
             }
         }

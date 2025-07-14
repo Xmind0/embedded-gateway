@@ -102,9 +102,8 @@ void client_manager_run(TaskManager* task_mgr) {
                 RequestMessage req_msg;
                 if (parse_request_message(std::string(buf), req_msg)) {
                     // 可选：生成/补充request_id等逻辑
-                    // 推送到TaskManager
                     if (task_mgr) {
-                        task_mgr->pushRequest(c.socket_fd, buf);
+                        task_mgr->pushRequest(c.socket_fd, req_msg);
                     }
                 }
             }
